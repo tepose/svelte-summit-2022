@@ -1,5 +1,5 @@
 <script lang="ts">
-    import Visualisation from "./lib/Visualisation.svelte";
+    import Visualisation from "./Visualisation.svelte";
 </script>
 
 <main
