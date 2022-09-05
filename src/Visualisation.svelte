@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { fade, draw, fly } from "svelte/transition";
+    import { fade, draw } from "svelte/transition";
     import { tweened } from "svelte/motion";
     import { cubicInOut } from "svelte/easing";
     import { interpolateRgb } from "d3-interpolate";
@@ -115,56 +115,50 @@
     <figure class="figure">
         <svg width="100%" height="100%" viewBox="{x0} {y0} {w} {h}">
             <!-- Grids -->
-            {#if y1Labels}
-                <g class="grids">
-                    {#each $y1Labels as label, index}
-                        <line
-                            x1={0}
-                            y1={yLabelPos[index]}
-                            x2={x100}
-                            y2={yLabelPos[index]}
-                        />
-                        <text
-                            transition:fade={{
-                                duration: 1000,
-                            }}
-                            class="y y-1"
-                            x={0}
-                            y={yLabelPos[index]}
-                            style="--delay: {($y1Labels.length - index) *
-                                duration}ms"
-                        >
-                            {Math.floor(label)}
-                        </text>
-                    {/each}
+            <g class="grids">
+                {#each $y1Labels as label, index}
+                    <line
+                        x1={0}
+                        y1={yLabelPos[index]}
+                        x2={x100}
+                        y2={yLabelPos[index]}
+                    />
+                    <text
+                        class="y y-1"
+                        x={0}
+                        y={yLabelPos[index]}
+                        style="--delay: {($y1Labels.length - index) *
+                            duration}ms"
+                    >
+                        {Math.floor(label)}
+                    </text>
+                {/each}
 
-                    {#each xLabels as label, index}
-                        <text
-                            class="x"
-                            y={y100}
-                            x={getXPos(label)}
-                            style="--delay: {$y1Labels.length * duration +
-                                index * duration}ms"
-                        >
-                            {label}
-                        </text>
-                    {/each}
+                {#each xLabels as label, index}
+                    <text
+                        class="x"
+                        y={y100}
+                        x={getXPos(label)}
+                        style="--delay: {$y1Labels.length * duration +
+                            index * duration}ms"
+                    >
+                        {label}
+                    </text>
+                {/each}
 
-                    {#each $y2Labels as label, index}
-                        <text
-                            class="y y-2"
-                            x={x100}
-                            y={yLabelPos[index]}
-                            style="--delay: {($y1Labels.length +
-                                xLabels.length) *
-                                duration +
-                                index * duration}ms"
-                        >
-                            {Math.floor(label)}
-                        </text>
-                    {/each}
-                </g>
-            {/if}
+                {#each $y2Labels as label, index}
+                    <text
+                        class="y y-2"
+                        x={x100}
+                        y={yLabelPos[index]}
+                        style="--delay: {($y1Labels.length + xLabels.length) *
+                            duration +
+                            index * duration}ms"
+                    >
+                        {Math.floor(label)}
+                    </text>
+                {/each}
+            </g>
 
             <!-- Columns -->
             <g class="columns">
@@ -179,14 +173,7 @@
                             fill={categoryColors(index / categories.length)}
                         />
 
-                        <text
-                            transition:fade={{
-                                duration: 4000,
-                            }}
-                            class="category"
-                            x={x + columWidth / 2}
-                            y={y100}
-                        >
+                        <text class="category" x={x + columWidth / 2} y={y100}>
                             {category}
                         </text>
 
@@ -234,7 +221,7 @@
     }
 
     .grids text {
-        /* opacity: 0; */
+        opacity: 0;
         stroke: none;
         animation-fill-mode: forwards;
         animation-duration: 500ms;
@@ -243,6 +230,7 @@
 
     .grids .y-1 {
         text-anchor: end;
+        animation-name: fade, fly-y1;
     }
 
     .grids .y-2 {
