@@ -45,7 +45,7 @@ export const data = writable<Datum[]>(getData(dates));
 
 setTimeout(() => {
     data.set(getData(dates));
-}, 5000);
+}, 10000);
 
 export const dataByCategory = derived<[Writable<Datum[]>], DataByCategory>(
     [data],

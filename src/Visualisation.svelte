@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { fade, draw } from "svelte/transition";
+    import { fade, fly, draw } from "svelte/transition";
     import { tweened } from "svelte/motion";
     import { cubicInOut } from "svelte/easing";
     import { interpolateRgb } from "d3-interpolate";
@@ -11,8 +11,15 @@
         getYLabels,
         sleep,
     } from "./lib/utils";
+    import { onMount } from "svelte";
 
-    const categoryColors = interpolateRgb("#03A678", "#014040");
+    const categoryColors = interpolateRgb("#04AED4", "#011F26");
+
+    let timing = {
+        x: false,
+        y: false,
+        categories: false,
+    };
 
     let x0 = -50;
     let y0 = -50;
@@ -22,7 +29,6 @@
     let lines = 4;
     let x100 = w + x0 * 2;
     let y100 = h + y0 * 2;
-    let duration = 100;
 
     let yLabelPos = getYLabels(lines).map(
         (value) => y100 - (y100 / lines) * value
@@ -51,7 +57,11 @@
     $: dates = Object.keys($dataByDate).sort(([dateA], [dateB]) =>
         dateA > dateB ? +1 : -1
     );
+    $: xLabels = getXLabels(dates, lines);
     $: categories = Object.keys($dataByCategory);
+    $: columWidth = Math.floor(
+        (x100 - gap * categories.length) / categories.length
+    );
     $: xPosByDate = dates
         .sort((a, b) => (a > b ? +1 : -1))
         .reduce<{ [date: string]: number }>(
@@ -66,48 +76,58 @@
     let getY2Pos = (value: number) => getYPos(value, y2ceil);
     let getXPos = (date: string) => xPosByDate[date];
 
-    // Labels
-    $: xLabels = getXLabels(dates, lines);
-
-    // Columns
     let getColumnHeight = (value: number) => y100 - getY1Pos(value);
-
-    $: columWidth = Math.floor(
-        (x100 - gap * categories.length) / categories.length
-    );
 
     $: if (y1ceil) y1Labels.set(getYLabels(y1ceil));
     $: if (y2ceil) y2Labels.set(getYLabels(y2ceil));
 
-    dataByDate.subscribe(async (data) => {
-        const d = Object.entries(data)
-            .sort(([dateA], [dateB]) => (dateA > dateB ? +1 : -1))
-            .map(([date, datum]) => ({ date, value: datum.total }));
+    const subscribeToLine = () => {
+        dataByDate.subscribe(async (data) => {
+            const d = Object.entries(data)
+                .sort(([dateA], [dateB]) => (dateA > dateB ? +1 : -1))
+                .map(([date, datum]) => ({ date, value: datum.total }));
 
-        if (!$points) {
-            await sleep(3000);
-        }
+            points.set(d.map(({ value }) => value));
+        });
+    };
 
-        points.set(d.map(({ value }) => value));
-    });
+    const subscribeToCategories = (): number => {
+        dataByCategory.subscribe(async (data) => {
+            const d = Object.entries(data)
+                .sort(([catA], [catB]) => (catA > catB ? +1 : -1))
+                .map(([category, value]) => value);
 
-    dataByCategory.subscribe(async (data) => {
-        const d = Object.entries(data)
-            .sort(([catA], [catB]) => (catA > catB ? +1 : -1))
-            .map(([category, value]) => value);
+            let values = $columns || new Array(d.length).fill(0);
 
-        let values = $columns || new Array(d.length).fill(0);
+            // If $columns is empty, set initial values to 0
+            if (!$columns) {
+                await columns.set(values);
+                for (let i = 0; i < d.length; i++) {
+                    values = [
+                        ...values.slice(0, i),
+                        d[i],
+                        ...values.slice(i + 1),
+                    ];
+                    await columns.set(values);
+                }
+            } else {
+                columns.set(d);
+            }
+        });
 
-        // If $columns is empty, set initial values to 0
-        if (!$columns) {
-            await columns.set(values);
-            await sleep(1500);
-        }
+        return Object.keys($dataByCategory).length;
+    };
 
-        for (let i = 0; i < d.length; i++) {
-            values = [...values.slice(0, i), d[i], ...values.slice(i + 1)];
-            await columns.set(values);
-        }
+    onMount(async () => {
+        timing.y = true;
+        await sleep($y1Labels.length * 100);
+        timing.x = true;
+        await sleep(150);
+        const cats = subscribeToCategories();
+        await sleep(cats * 150);
+        timing.categories = true;
+        await sleep(cats * 100);
+        subscribeToLine();
     });
 </script>
 
@@ -123,41 +143,43 @@
                         x2={x100}
                         y2={yLabelPos[index]}
                     />
-                    <text
-                        class="y y-1"
-                        x={0}
-                        y={yLabelPos[index]}
-                        style="--delay: {($y1Labels.length - index) *
-                            duration}ms"
-                    >
-                        {Math.floor(label)}
-                    </text>
                 {/each}
-
-                {#each xLabels as label, index}
-                    <text
-                        class="x"
-                        y={y100}
-                        x={getXPos(label)}
-                        style="--delay: {$y1Labels.length * duration +
-                            index * duration}ms"
+            </g>
+            <!-- Labels -->
+            <g class="labels">
+                {#if timing.y}
+                    {#each $y1Labels as label, index}
+                        <g
+                            class="y-labels"
+                            in:fly={{
+                                duration: 200,
+                                delay: ($y1Labels.length - index) * 50,
+                                y: 20,
+                            }}
+                        >
+                            <text class="y y-1" x={0} y={yLabelPos[index]}>
+                                {Math.floor(label)}
+                            </text>
+                            <text class="y y-2" x={x100} y={yLabelPos[index]}>
+                                {Math.floor($y2Labels[index])}
+                            </text>
+                        </g>
+                    {/each}
+                {/if}
+                {#if timing.x}
+                    <g
+                        class="x-labels"
+                        in:fade={{
+                            duration: 500,
+                        }}
                     >
-                        {label}
-                    </text>
-                {/each}
-
-                {#each $y2Labels as label, index}
-                    <text
-                        class="y y-2"
-                        x={x100}
-                        y={yLabelPos[index]}
-                        style="--delay: {($y1Labels.length + xLabels.length) *
-                            duration +
-                            index * duration}ms"
-                    >
-                        {Math.floor(label)}
-                    </text>
-                {/each}
+                        {#each xLabels as label}
+                            <text class="x" y={y100} x={getXPos(label)}>
+                                {label}
+                            </text>
+                        {/each}
+                    </g>
+                {/if}
             </g>
 
             <!-- Columns -->
@@ -173,10 +195,6 @@
                             fill={categoryColors(index / categories.length)}
                         />
 
-                        <text class="category" x={x + columWidth / 2} y={y100}>
-                            {category}
-                        </text>
-
                         <text
                             class="value"
                             x={x + columWidth / 2}
@@ -184,6 +202,17 @@
                         >
                             {Math.floor($columns[index])}
                         </text>
+
+                        {#if timing.categories}
+                            <text
+                                class="category"
+                                x={x + columWidth / 2}
+                                y={y100}
+                                transition:fade
+                            >
+                                {category}
+                            </text>
+                        {/if}
                     {/each}
                 {/if}
             </g>
@@ -220,79 +249,39 @@
         width: min(100%, max(960px, 90vh * (var(--r))));
     }
 
-    .grids text {
-        opacity: 0;
-        stroke: none;
-        animation-fill-mode: forwards;
-        animation-duration: 500ms;
-        animation-delay: var(--delay);
-    }
-
-    .grids .y-1 {
-        text-anchor: end;
-        animation-name: fade, fly-y1;
-    }
-
-    .grids .y-2 {
-        fill: var(--10);
-        text-anchor: start;
-        animation-name: fade, fly-y2;
-    }
-
-    .grids .x {
-        text-anchor: middle;
-        transform: translateY(30px);
-        animation-name: fade, fly-x;
-    }
-
     .grids line {
         stroke-width: 1;
-        stroke: #cacaca;
+        stroke: var(--grid-color);
     }
 
-    @keyframes fade {
-        0% {
-            opacity: 0;
-        }
-        100% {
-            opacity: 1;
-        }
+    .labels text {
+        stroke: none;
+        fill: var(--label-color);
     }
 
-    @keyframes fly-y1 {
-        0% {
-            transform: translate(-5px, 35px);
-        }
-        100% {
-            transform: translate(-5px, 5px);
-        }
+    .labels .y-1 {
+        text-anchor: end;
+        transform: translate(-5px, 4px);
     }
 
-    @keyframes fly-y2 {
-        0% {
-            transform: translate(5px, 35px);
-        }
-        100% {
-            transform: translate(5px, 5px);
-        }
+    .labels .y-2 {
+        fill: var(--contrast-color);
+        text-anchor: start;
+        transform: translate(5px, 4px);
     }
 
-    @keyframes fly-x {
-        0% {
-            transform: translate(-30px, 30px);
-        }
-        100% {
-            transform: translate(0px, 30px);
-        }
+    .labels .x {
+        text-anchor: middle;
+        transform: translateY(30px);
     }
 
     .columns rect {
-        opacity: 0.8;
+        opacity: 0.9;
     }
 
     .columns text {
         stroke: none;
-        fill: white;
+        fill: var(--inverted-label-color);
         text-anchor: middle;
     }
 
@@ -305,7 +294,7 @@
     }
 
     .lines polyline {
-        stroke: var(--10);
+        stroke: var(--contrast-color);
         fill: none;
         stroke-width: 2;
     }
