@@ -34,20 +34,17 @@
         (value) => y100 - (y100 / lines) * value
     );
 
-    const getYPos = (value: number, ceil: number) =>
+    let getYPos = (value: number, ceil: number) =>
         value ? (ceil - value) / (ceil / y100) : y100;
-
-    const columnOptions = {
-        easing: cubicInOut,
-        duration: 500,
-    };
 
     let points = tweened<number[]>();
     let y1Labels = tweened<number[]>();
     let y2Labels = tweened<number[]>();
-    let columns = tweened<number[]>(undefined, columnOptions);
+    let columns = tweened<number[]>(undefined, {
+        easing: cubicInOut,
+        duration: 500,
+    });
 
-    // Values
     $: maxCategories = getMax(Object.values($dataByCategory));
     $: maxTotal = getMax(
         Object.values($dataByDate).map((datum) => datum.total)
@@ -145,6 +142,7 @@
                     />
                 {/each}
             </g>
+
             <!-- Labels -->
             <g class="labels">
                 {#if timing.y}
@@ -152,7 +150,6 @@
                         <g
                             class="y-labels"
                             in:fly={{
-                                duration: 200,
                                 delay: ($y1Labels.length - index) * 50,
                                 y: 20,
                             }}
@@ -167,12 +164,7 @@
                     {/each}
                 {/if}
                 {#if timing.x}
-                    <g
-                        class="x-labels"
-                        in:fade={{
-                            duration: 500,
-                        }}
-                    >
+                    <g class="x-labels" in:fade>
                         {#each xLabels as label}
                             <text class="x" y={y100} x={getXPos(label)}>
                                 {label}
@@ -216,6 +208,7 @@
                     {/each}
                 {/if}
             </g>
+
             <!-- Lines -->
             <g class="lines">
                 {#if $points}
