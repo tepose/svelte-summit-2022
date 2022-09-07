@@ -7,13 +7,8 @@ interface Datum {
     value: number;
 }
 
-interface DataByDate {
-    [date: string]: {
-        [category: string]: number;
-        total: number;
-    };
+interface ValueByKey<T> {
+    [key: string]: T;
 }
 
-interface DataByCategory {
-    [category: string]: number;
-}
+type Category = { category: string; value: number }[];

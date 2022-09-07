@@ -2,13 +2,17 @@ import { derived, writable, type Writable } from "svelte/store";
 import { getData } from "./utils";
 
 export const data = writable<Datum[]>(
-    getData(new Date("2022-01-01"), new Date("2022-04-01"))
+    getData(new Date("2022-06-30"), new Date("2022-09-08"))
 );
 
-export const dataByCategory = derived<[Writable<Datum[]>], DataByCategory>(
+setTimeout(() => {
+    data.set(getData(new Date("2022-06-30"), new Date("2022-09-08"), 4, 2));
+}, 6000);
+
+export const dataByCategory = derived<[Writable<Datum[]>], Category>(
     [data],
     ([$data], set) => {
-        const obj: DataByCategory = {};
+        const obj: ValueByKey<number> = {};
 
         $data.forEach((datum) => {
             if (!(datum.category in obj)) {
@@ -18,24 +22,26 @@ export const dataByCategory = derived<[Writable<Datum[]>], DataByCategory>(
             obj[datum.category] = obj[datum.category] + datum.value;
         });
 
-        set(obj);
+        const arr = Object.entries(obj).map(([category, value]) => ({
+            category,
+            value,
+        }));
+
+        set(arr);
     }
 );
 
-export const dataByDate = derived<[Writable<Datum[]>], DataByDate>(
+export const dataByDate = derived<[Writable<Datum[]>], ValueByKey<number>>(
     [data],
     ([$data], set) => {
-        const obj: DataByDate = {};
+        const obj: ValueByKey<number> = {};
 
         $data.forEach((datum) => {
-            if (!obj[datum.date]) {
-                obj[datum.date] = {
-                    total: 0,
-                };
+            if (!(datum.date in obj)) {
+                obj[datum.date] = 0;
             }
 
-            obj[datum.date][datum.category] = datum.value;
-            obj[datum.date].total += datum.value;
+            obj[datum.date] = obj[datum.date] + datum.value;
         });
 
         set(obj);
