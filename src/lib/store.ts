@@ -6,8 +6,8 @@ export const data = writable<Datum[]>(
 );
 
 setTimeout(() => {
-    data.set(getData(new Date("2022-06-30"), new Date("2022-09-08"), 4, 2));
-}, 6000);
+    data.set(getData(new Date("2022-06-30"), new Date("2022-09-08"), 4, 1.3));
+}, 10000);
 
 export const dataByCategory = derived<[Writable<Datum[]>], Category>(
     [data],

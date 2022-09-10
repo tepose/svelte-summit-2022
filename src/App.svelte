@@ -57,6 +57,7 @@
     $: columWidth = Math.floor(
         (x100 - gap * categories.length) / categories.length
     );
+
     $: xPosByDate = dates
         .sort((a, b) => (a > b ? +1 : -1))
         .reduce<{ [date: string]: number }>(
@@ -115,7 +116,7 @@
         timing.x = true;
         await sleep(150);
         const cats = subscribeToCategories();
-        await sleep(cats * 100);
+        await sleep(cats * 150);
         subscribeToLine();
     });
 </script>
@@ -207,13 +208,13 @@
             <g class="lines">
                 {#if $points}
                     <polyline
-                        transition:draw={{ duration: 1000 }}
+                        transition:draw={{ duration: 1500, easing: cubicInOut }}
                         points={$points
                             .map(
-                                (value, index) =>
-                                    `${getXPos(dates[index])},${getY2Pos(
-                                        value
-                                    )}`
+                                (value, index) => `
+                                    ${getXPos(dates[index])},
+                                    ${getY2Pos(value)}
+                                `
                             )
                             .join(" ")}
                     />

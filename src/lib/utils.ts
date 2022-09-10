@@ -18,7 +18,7 @@ export const getYLabels = (ceil: number, lines = 4): number[] => {
         .map((index) => (ceil / lines) * index);
 };
 
-export const getXLabels = (labels: any[], columns = 4): number[] => {
+export const getXLabels = (labels: any[], columns = 4): string[] => {
     return new Array(columns + 1)
         .fill("")
         .map((_, index) => index)
